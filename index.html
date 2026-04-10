@@ -2,246 +2,156 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Graph Coloring Game</title>
+<title>Graph Coloring Test</title>
 
 <style>
 body{
-  margin:0;
-  font-family:Arial;
-  background:linear-gradient(135deg,#141e30,#243b55);
+  font-family: Arial;
+  background:#1e2a38;
   color:white;
   text-align:center;
 }
 
-h2{margin-top:10px;}
-
-.card{
-  background:rgba(255,255,255,0.08);
-  width:85%;
-  margin:10px auto;
-  padding:10px;
-  border-radius:12px;
-  backdrop-filter:blur(10px);
+canvas{
+  background:white;
+  margin-top:10px;
+  border-radius:10px;
 }
 
 button{
   margin:5px;
   padding:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  transition:0.2s;
-}
-
-button:hover{
-  transform:scale(1.1);
-  box-shadow:0 0 10px #fff;
-}
-
-canvas{
-  background:white;
-  border-radius:10px;
-  transition:0.3s;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🎮 Graph Coloring Game</h2>
+<h2>🎮 Graph Coloring</h2>
 
-<div class="card" id="menu">
-<button onclick="startGame('easy')">🟢 Kolay</button>
-<button onclick="startGame('medium')">🟡 Orta</button>
-<button onclick="startGame('hard')">🔴 Zor</button>
+<div id="menu">
+<button onclick="startGame('easy')">Kolay</button>
+<button onclick="startGame('medium')">Orta</button>
+<button onclick="startGame('hard')">Zor</button>
 </div>
 
-<div class="card">
-<p>Level: <span id="level">1</span> |
-Skor: <span id="score">0</span> |
-Süre: <span id="time">60</span></p>
-
-<div id="colors"></div>
+<p>Level: <span id="level">1</span> | Süre: <span id="time">60</span></p>
 
 <canvas id="canvas" width="500" height="400"></canvas>
 
-<br>
-<button onclick="restartLevel()">🔁 Tekrar Dene</button>
-</div>
-
 <script>
 
-let nodes=[];
-let level=1;
-let score=0;
-let time=60;
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+
+let nodes = [];
+let level = 1;
+let time = 60;
 let timer;
-let secili="red";
-let density=0.3;
-
-function secRenk(c){secili=c;}
-
-let colors=["red","blue","green","yellow","purple","orange"];
-
-function renderColors(){
-document.getElementById("colors").innerHTML=
-colors.map(c=>
-<button style="background:${c}" onclick="secRenk('${c}')">${c}</button>
-).join("");
-}
-
-function safeGraph(n){
-let a=[];
-
-// node
-for(let i=0;i<n;i++){
-a.push({x:Math.random()*400+50,y:Math.random()*300+50,r:null,k:[]});
-}
-
-// chain (garantili bağlantı)
-for(let i=0;i<n-1;i++){
-a[i].k.push(i+1);
-a[i+1].k.push(i);
-}
-
-// random edges (density kontrollü)
-for(let i=0;i<n;i++){
-for(let j=i+1;j<n;j++){
-if(Math.random() < density){
-a[i].k.push(j);
-a[j].k.push(i);
-}
-}
-}
-
-return a;
-}
-
-let canvas=document.getElementById("canvas");
-let ctx=canvas.getContext("2d");
-
-function draw(){
-ctx.clearRect(0,0,500,400);
-
-// edges
-nodes.forEach(n=>{
-n.k.forEach(j=>{
-ctx.beginPath();
-ctx.moveTo(n.x,n.y);
-ctx.lineTo(nodes[j].x,nodes[j].y);
-ctx.stroke();
-});
-});
-
-// nodes
-nodes.forEach(n=>{
-ctx.beginPath();
-ctx.arc(n.x,n.y,18,0,Math.PI*2);
-ctx.fillStyle=n.r||"white";
-ctx.fill();
-ctx.stroke();
-});
-}
-
-canvas.addEventListener("click",e=>{
-let r=canvas.getBoundingClientRect();
-let x=e.clientX-r.left;
-let y=e.clientY-r.top;
-
-nodes.forEach((n,i)=>{
-let dx=x-n.x;
-let dy=y-n.y;
-
-if(Math.sqrt(dx*dx+dy*dy)<18){
-
-// yanlış kontrol
-for(let k of n.k){
-if(nodes[k].r===secili){
-score-=5;
-updateUI();
-return;
-}
-}
-
-n.r=secili;
-score+=10;
-
-updateUI();
-draw();
-checkWin();
-}
-});
-});
-
-function checkWin(){
-if(nodes.every(n=>n.r)){
-clearInterval(timer);
-
-score+=time;
-
-level++;
-
-startLevel();
-}
-}
-
-function restartLevel(){
-startLevel();
-}
-
-function startLevel(){
-nodes=safeGraph(4+level*2);
-
-time=60;
-document.getElementById("time").innerText=time;
-
-startTimer();
-draw();
-
-updateUI();
-}
-
-function startTimer(){
-clearInterval(timer);
-
-timer=setInterval(()=>{
-time--;
-document.getElementById("time").innerText=time;
-
-if(time<=0){
-clearInterval(timer);
-alert("Süre bitti! Aynı level tekrar.");
-restartLevel();
-}
-},1000);
-}
-
-function updateUI(){
-document.getElementById("level").innerText=level;
-document.getElementById("score").innerText=score;
-}
+let density = 0.3;
+let secili = "red";
 
 function startGame(mode){
 
-let settings={
-easy:0.15,
-medium:0.3,
-hard:0.5
-};
+  if(mode === "easy") density = 0.2;
+  if(mode === "medium") density = 0.35;
+  if(mode === "hard") density = 0.5;
 
-density=settings[mode];
+  document.getElementById("menu").style.display = "none";
 
-document.getElementById("menu").style.display="none";
+  level = 1;
 
-level=1;
-score=0;
-
-renderColors();
-startLevel();
-updateUI();
+  startLevel();
 }
 
-renderColors();
+function safeGraph(n){
+  let g = [];
+
+  for(let i=0;i<n;i++){
+    g.push({x:Math.random()*400+50,y:Math.random()*300+50,r:null,k:[]});
+  }
+
+  for(let i=0;i<n-1;i++){
+    g[i].k.push(i+1);
+    g[i+1].k.push(i);
+  }
+
+  for(let i=0;i<n;i++){
+    for(let j=i+1;j<n;j++){
+      if(Math.random() < density){
+        g[i].k.push(j);
+        g[j].k.push(i);
+      }
+    }
+  }
+
+  return g;
+}
+
+function draw(){
+  ctx.clearRect(0,0,500,400);
+
+  nodes.forEach(n=>{
+    n.k.forEach(j=>{
+      ctx.beginPath();
+      ctx.moveTo(n.x,n.y);
+      ctx.lineTo(nodes[j].x,nodes[j].y);
+      ctx.stroke();
+    });
+  });
+
+  nodes.forEach(n=>{
+    ctx.beginPath();
+    ctx.arc(n.x,n.y,18,0,Math.PI*2);
+    ctx.fillStyle = n.r || "white";
+    ctx.fill();
+    ctx.stroke();
+  });
+}
+
+canvas.addEventListener("click", e=>{
+  let r = canvas.getBoundingClientRect();
+  let x = e.clientX - r.left;
+  let y = e.clientY - r.top;
+
+  nodes.forEach((n,i)=>{
+    let dx = x - n.x;
+    let dy = y - n.y;
+
+    if(Math.sqrt(dx*dx+dy*dy) < 18){
+      n.r = secili;
+      draw();
+    }
+  });
+});
+
+function startLevel(){
+  nodes = safeGraph(5 + level * 2);
+
+  time = 60;
+  document.getElementById("time").innerText = time;
+
+  draw();
+
+  startTimer();
+
+  document.getElementById("level").innerText = level;
+}
+
+function startTimer(){
+  clearInterval(timer);
+
+  timer = setInterval(()=>{
+    time--;
+    document.getElementById("time").innerText = time;
+
+    if(time <= 0){
+      clearInterval(timer);
+      alert("Süre bitti!");
+      startLevel();
+    }
+  },1000);
+}
 
 </script>
 
