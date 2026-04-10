@@ -1,165 +1,131 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<title>Min Color Challenge</title>
-
-<style>
-body{
-  font-family:Arial;
-  text-align:center;
-  background:#1e2a38;
-  color:white;
-}
-
-canvas{
-  background:white;
-  border-radius:10px;
-  margin-top:10px;
-}
-
-button{
-  margin:5px;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-button:hover{
-  transform:scale(1.1);
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graf Boyama Labirent</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #ui-panel {
+            padding: 20px;
+            text-align: center;
+        }
+        canvas {
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #45a049; }
+        .info { color: #555; max-width: 600px; line-height: 1.6; }
+    </style>
 </head>
-
 <body>
 
-<h2>🎮 Minimum Renk Challenge</h2>
+    <div id="ui-panel">
+        <h1>Graf Boyama Oyunu</h1>
+        <p class="info">
+            Komşu düğümleri (birbirine bağlı noktaları) <b>farklı renklerde</b> boyamaya çalışın. 
+            Noktalara tıklayarak renklerini değiştirebilirsiniz.
+        </p>
+        <div class="controls">
+            <button onclick="resetGraph()">Yeni Graf Oluştur</button>
+        </div>
+    </div>
 
-<p>Hedef: Grafı mümkün olan EN AZ renk ile boya</p>
+    <script>
+        let nodes = [];
+        let edges = [];
+        let colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C', '#A44200'];
+        let nodeCount = 6;
 
-<p>Level: <span id="level">1</span> | Skor: <span id="score">0</span></p>
-
-<div id="colors"></div>
-
-<canvas id="canvas" width="500" height="400"></canvas>
-
-<br>
-<button onclick="nextLevel()">➡ Level Geç</button>
-
-<script>
-
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
-
-let nodes = [];
-let level = 1;
-let score = 0;
-let secili = "red";
-
-let colors = ["red","blue","green","yellow","purple","orange"];
-
-function setColor(c){
-  secili = c;
-}
-
-function renderColors(){
-  document.getElementById("colors").innerHTML =
-    colors.map(c =>
-      <button style="background:${c}" onclick="setColor('${c}')">${c}</button>
-    ).join("");
-}
-
-function generateGraph(n){
-  let g = [];
-
-  for(let i=0;i<n;i++){
-    g.push({x:Math.random()*400+50,y:Math.random()*300+50,r:null,k:[]});
-  }
-
-  for(let i=0;i<n;i++){
-    for(let j=i+1;j<n;j++){
-      if(Math.random() < 0.25){
-        g[i].k.push(j);
-        g[j].k.push(i);
-      }
-    }
-  }
-
-  return g;
-}
-
-function draw(){
-  ctx.clearRect(0,0,500,400);
-
-  nodes.forEach(n=>{
-    n.k.forEach(j=>{
-      ctx.beginPath();
-      ctx.moveTo(n.x,n.y);
-      ctx.lineTo(nodes[j].x,nodes[j].y);
-      ctx.stroke();
-    });
-  });
-
-  nodes.forEach(n=>{
-    ctx.beginPath();
-    ctx.arc(n.x,n.y,18,0,Math.PI*2);
-    ctx.fillStyle = n.r || "white";
-    ctx.fill();
-    ctx.stroke();
-  });
-}
-
-canvas.addEventListener("click", e=>{
-  let r = canvas.getBoundingClientRect();
-  let x = e.clientX - r.left;
-  let y = e.clientY - r.top;
-
-  nodes.forEach((n,i)=>{
-    let dx = x - n.x;
-    let dy = y - n.y;
-
-    if(Math.sqrt(dx*dx + dy*dy) < 18){
-
-      // komşu kontrol
-      for(let k of n.k){
-        if(nodes[k].r === secili){
-          alert("Bu renk komşuda var!");
-          return;
+        function setup() {
+            createCanvas(700, 450);
+            resetGraph();
         }
-      }
 
-      n.r = secili;
-      draw();
-    }
-  });
-});
+        function draw() {
+            background(255);
+            
+            // Kenarları çiz (Edge check)
+            for (let edge of edges) {
+                let n1 = nodes[edge.u];
+                let n2 = nodes[edge.v];
+                
+                // Eğer komşu düğümler aynı renkse (ve gri değillerse) kenarı kırmızı yap
+                if (n1.colorIndex === n2.colorIndex && n1.colorIndex !== -1) {
+                    stroke(255, 0, 0);
+                    strokeWeight(4);
+                } else {
+                    stroke(200);
+                    strokeWeight(2);
+                }
+                line(n1.x, n1.y, n2.x, n2.y);
+            }
 
-function nextLevel(){
+            // Düğümleri çiz
+            for (let i = 0; i < nodes.length; i++) {
+                let n = nodes[i];
+                stroke(50);
+                strokeWeight(2);
+                fill(n.colorIndex === -1 ? 220 : colors[n.colorIndex]);
+                ellipse(n.x, n.y, 40, 40);
+                
+                fill(0);
+                noStroke();
+                textAlign(CENTER, CENTER);
+                text(i + 1, n.x, n.y);
+            }
+        }
 
-  // skor hesapla
-  let used = new Set(nodes.map(n => n.r).filter(x => x));
+        function mousePressed() {
+            for (let n of nodes) {
+                let d = dist(mouseX, mouseY, n.x, n.y);
+                if (d < 20) {
+                    n.colorIndex = (n.colorIndex + 1) % colors.length;
+                }
+            }
+        }
 
-  score += Math.max(0, 10 - used.size) * 10;
-
-  level++;
-
-  // yeni graf
-  nodes = generateGraph(5 + level * 2);
-
-  // temizle UI
-  document.getElementById("level").innerText = level;
-  document.getElementById("score").innerText = score;
-
-  // önemli: yeniden çiz
-  draw();
-}
-
-nodes = generateGraph(5);
-renderColors();
-draw();
-
-</script>
-
+        function resetGraph() {
+            nodes = [];
+            edges = [];
+            // Rastgele düğüm oluşturma
+            for (let i = 0; i < nodeCount; i++) {
+                nodes.push({
+                    x: random(50, width - 50),
+                    y: random(50, height - 50),
+                    colorIndex: -1
+                });
+            }
+            // Rastgele bağlantılar (Basit bir graf yapısı)
+            for (let i = 0; i < nodeCount; i++) {
+                for (let j = i + 1; j < nodeCount; j++) {
+                    if (random() > 0.6) {
+                        edges.push({ u: i, v: j });
+                    }
+                }
+            }
+        }
+    </script>
 </body>
 </html>
