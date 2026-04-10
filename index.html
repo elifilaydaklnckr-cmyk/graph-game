@@ -2,71 +2,72 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Graph Coloring Pro</title>
+<title>Graph Coloring Game</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  background:linear-gradient(135deg,#141e30,#243b55);
   color:white;
   text-align:center;
 }
 
-h2{margin:10px;}
+h2{margin-top:10px;}
 
 .card{
   background:rgba(255,255,255,0.08);
+  width:85%;
   margin:10px auto;
   padding:10px;
-  width:85%;
   border-radius:12px;
   backdrop-filter:blur(10px);
 }
 
 button{
   margin:5px;
-  padding:10px;
+  padding:10px 12px;
   border:none;
   border-radius:8px;
   cursor:pointer;
-  transition:0.3s;
+  transition:0.2s;
 }
 
 button:hover{
   transform:scale(1.1);
-  background:#ffd369;
-  color:black;
+  box-shadow:0 0 10px #fff;
 }
 
 canvas{
   background:white;
   border-radius:10px;
-  margin-top:10px;
+  transition:0.5s;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🎮 Graph Coloring Pro</h2>
+<h2>🎮 Graph Coloring Game</h2>
+
+<div class="card" id="menu">
+<button onclick="startGame('easy')">🟢 Kolay</button>
+<button onclick="startGame('medium')">🟡 Orta</button>
+<button onclick="startGame('hard')">🔴 Zor</button>
+</div>
 
 <div class="card">
 <p>Level: <span id="level">1</span> |
 Skor: <span id="score">0</span> |
 Süre: <span id="time">60</span></p>
 
-<p>🎯 Optimal renk sayısı: <span id="opt">?</span></p>
-<p>📊 Doğruluk: <span id="acc">0</span>%</p>
-</div>
+<p>🏆 Rozet: <span id="badge">Başlangıç</span></p>
 
-<div class="card">
 <div id="colors"></div>
-</div>
 
 <canvas id="canvas" width="500" height="400"></canvas>
 
-<div class="card">
+<br>
 <button onclick="restartLevel()">🔁 Tekrar Dene</button>
 </div>
 
@@ -82,34 +83,34 @@ let density=0.3;
 
 function secRenk(c){secili=c;}
 
-function generateGraph(n,d){
+let colors=["red","blue","green","yellow","purple","orange","pink","cyan"];
+
+function renderColors(){
+document.getElementById("colors").innerHTML=
+colors.map(c=>
+<button style="background:${c}" onclick="secRenk('${c}')">${c}</button>
+).join("");
+}
+
+function safeGraph(n){
 let a=[];
 for(let i=0;i<n;i++){
 a.push({x:Math.random()*400+50,y:Math.random()*300+50,r:null,k:[]});
 }
+
+for(let i=0;i<n-1;i++){
+a[i].k.push(i+1);
+a[i+1].k.push(i);
+}
+
 for(let i=0;i<n;i++){
-for(let j=i+1;j<n;j++){
-if(Math.random()<d){
+if(Math.random()<0.2){
+let j=Math.floor(Math.random()*n);
+if(i!==j){
 a[i].k.push(j);
 a[j].k.push(i);
 }}}
 return a;
-}
-
-// GREEDY OPTİMUM HESAP
-function greedyColoring(graph){
-let colors=["red","blue","green","yellow","purple","orange","pink","cyan"];
-let temp=JSON.parse(JSON.stringify(graph));
-
-for(let i=0;i<temp.length;i++){
-let used=new Set();
-temp[i].k.forEach(j=>{
-if(temp[j].r) used.add(temp[j].r);
-});
-temp[i].r=colors.find(c=>!used.has(c));
-}
-
-return new Set(temp.map(n=>n.r)).size;
 }
 
 let canvas=document.getElementById("canvas");
@@ -136,6 +137,27 @@ ctx.stroke();
 });
 }
 
+// 🎯 ANİMASYONLAR
+function pop(x,y,color){
+ctx.fillStyle=color;
+ctx.globalAlpha=0.4;
+ctx.beginPath();
+ctx.arc(x,y,30,0,Math.PI*2);
+ctx.fill();
+ctx.globalAlpha=1;
+}
+
+function shake(){
+canvas.style.transform="translateX(5px)";
+setTimeout(()=>canvas.style.transform="translateX(-5px)",50);
+setTimeout(()=>canvas.style.transform="translateX(0)",100);
+}
+
+function glow(){
+canvas.style.boxShadow="0 0 20px #00ff88";
+setTimeout(()=>canvas.style.boxShadow="none",300);
+}
+
 canvas.addEventListener("click",e=>{
 let r=canvas.getBoundingClientRect();
 let x=e.clientX-r.left;
@@ -143,18 +165,24 @@ let y=e.clientY-r.top;
 
 nodes.forEach((n,i)=>{
 let dx=x-n.x,dy=y-n.y;
+
 if(Math.sqrt(dx*dx+dy*dy)<18){
 
-// ❌ yanlış komşu kontrol
 for(let k of n.k){
 if(nodes[k].r===secili){
-score-=5; // ceza
+score-=5;
+shake();
+updateUI();
 return;
 }
 }
 
 n.r=secili;
 score+=10;
+
+pop(n.x,n.y,secili);
+glow();
+
 updateUI();
 draw();
 checkWin();
@@ -165,27 +193,26 @@ function checkWin(){
 if(nodes.every(n=>n.r)){
 clearInterval(timer);
 
-let opt=greedyColoring(nodes);
-document.getElementById("opt").innerText=opt;
+score+=time;
 
-let used=new Set(nodes.map(n=>n.r)).size;
-
-// 📊 doğruluk
-let acc=Math.max(0,Math.round((opt/used)*100));
-document.getElementById("acc").innerText=acc;
-
-// 🏆 skor bonus
-score+=time+acc;
-updateUI();
-
-setTimeout(()=>levelUp(),1000);
+levelUp();
 }
 }
 
 function levelUp(){
 level++;
-density=Math.min(0.2+level*0.05,0.8);
+updateBadge();
+
 startLevel();
+}
+
+function updateBadge(){
+let b="Başlangıç";
+if(level>=3) b="Graf Ustası";
+if(level>=6) b="Renk Stratejisti";
+if(level>=10) b="Kromatik Efsane";
+
+document.getElementById("badge").innerText=b;
 }
 
 function restartLevel(){
@@ -193,7 +220,8 @@ startLevel();
 }
 
 function startLevel(){
-nodes=generateGraph(4+level*2,density);
+nodes=safeGraph(4+level*2);
+
 time=60;
 startTimer();
 draw();
@@ -201,13 +229,15 @@ draw();
 
 function startTimer(){
 clearInterval(timer);
+
 timer=setInterval(()=>{
 time--;
 document.getElementById("time").innerText=time;
+
 if(time<=0){
 clearInterval(timer);
-alert("Süre bitti!");
-startLevel();
+alert("Süre bitti! Aynı level tekrar.");
+restartLevel(); // ❗ level artmaz
 }
 },1000);
 }
@@ -217,18 +247,22 @@ document.getElementById("level").innerText=level;
 document.getElementById("score").innerText=score;
 }
 
-function renderColors(){
-let colors=["red","blue","green","yellow","purple","orange","pink","cyan"];
+function startGame(mode){
+if(mode==="easy") density=0.2;
+if(mode==="medium") density=0.3;
+if(mode==="hard") density=0.5;
 
-document.getElementById("colors").innerHTML=
-colors.map(c=>
-<button style="background:${c}" onclick="secRenk('${c}')">${c}</button>
-).join("");
-}
+document.getElementById("menu").style.display="none";
 
-// START
+level=1;
+score=0;
+
 renderColors();
 startLevel();
+updateUI();
+}
+
+renderColors();
 
 </script>
 
