@@ -137,17 +137,21 @@ canvas.addEventListener("click", e=>{
 
 function nextLevel(){
 
-  let used = new Set(nodes.map(n => n.r));
+  // skor hesapla
+  let used = new Set(nodes.map(n => n.r).filter(x => x));
 
   score += Math.max(0, 10 - used.size) * 10;
 
   level++;
 
+  // yeni graf
+  nodes = generateGraph(5 + level * 2);
+
+  // temizle UI
   document.getElementById("level").innerText = level;
   document.getElementById("score").innerText = score;
 
-  nodes = generateGraph(5 + level * 2);
-
+  // önemli: yeniden çiz
   draw();
 }
 
