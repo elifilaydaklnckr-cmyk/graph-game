@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kromatik Master - Graf Boyama</title>
+    <title>Kromatik Master - En Az Renk Meydan Okuması</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
         body { margin: 0; background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
-        #ui-layer { position: absolute; top: 20px; width: 90%; max-width: 800px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; }
-        .stats-card { background: var(--card); padding: 12px 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; }
+        #ui-layer { position: absolute; top: 20px; width: 90%; max-width: 900px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; }
+        .stats-card { background: var(--card); padding: 12px 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; min-width: 120px; }
         #bottom-controls { position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 100; }
-        button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; min-width: 150px; }
+        button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
         .btn-next { background: #10b981; color: white; }
         .btn-hint { background: #f59e0b; color: white; }
-        button:hover { transform: translateY(-3px); filter: brightness(1.1); }
-        button:active { transform: translateY(0); }
+        #msg-box { position: absolute; top: 120px; background: rgba(244, 63, 94, 0.9); padding: 10px 20px; border-radius: 8px; display: none; font-weight: bold; z-index: 50; }
+        .success-glow { color: #10b981; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -25,15 +25,21 @@
             <div style="font-size: 10px; color: #94a3b8;">SEVİYE</div>
             <div id="lvl-display" style="font-size: 20px; font-weight: 800;">1</div>
         </div>
+        <div class="stats-card">
+            <div style="font-size: 10px; color: #94a3b8;">HEDEF RENK</div>
+            <div id="target-display" style="font-size: 20px; font-weight: 800; color: #f59e0b;">?</div>
+        </div>
         <div class="stats-card" style="text-align: center;">
             <div style="font-size: 10px; color: #94a3b8;">SÜRE</div>
             <div id="timer-display" style="font-size: 20px; font-weight: 800; color: #f43f5e;">30</div>
         </div>
         <div class="stats-card">
-            <div style="font-size: 10px; color: #94a3b8;">SKOR</div>
-            <div id="score-display" style="font-size: 20px; font-weight: 800; color: #38bdf8;">0</div>
+            <div style="font-size: 10px; color: #94a3b8;">KULLANILAN</div>
+            <div id="used-display" style="font-size: 20px; font-weight: 800; color: #38bdf8;">0</div>
         </div>
     </div>
+
+    <div id="msg-box">DİKKAT: Doğru boyadın ama daha az renk kullanmalısın!</div>
 
     <div id="bottom-controls">
         <button id="hint-btn" class="btn-hint" onclick="solvePuzzle()">YARDIM (AI)</button>
@@ -43,7 +49,8 @@
     <script>
         let nodes = [], edges = [];
         let colors = ['#ff4757', '#2ed573', '#1e90ff', '#eccc68', '#a4b0be', '#ffa502'];
-        let currentLvl = 1, score = 0, timeLeft = 30, gameActive = true;
+        let currentLvl = 1, score = 0, timeLeft = 45, gameActive = true;
+        let chromaticNumber = 0;
         let timerInterval;
 
         function setup() {
@@ -55,7 +62,6 @@
         function draw() {
             background(15, 23, 42);
             
-            // Kenar çizimleri
             for (let edge of edges) {
                 let n1 = nodes[edge.u], n2 = nodes[edge.v];
                 let conflict = (n1.c !== -1 && n1.c === n2.c);
@@ -64,7 +70,6 @@
                 line(n1.x, n1.y, n2.x, n2.y);
             }
 
-            // Düğüm çizimleri
             for (let n of nodes) {
                 if(n.c !== -1) { noStroke(); fill(colors[n.c] + '33'); ellipse(n.x, n.y, 60, 60); }
                 stroke(n.c === -1 ? '#94a3b8' : colors[n.c]);
@@ -73,21 +78,20 @@
                 ellipse(n.x, n.y, 40, 40);
             }
 
-            // Oyun Bitti Ekranı (Overlay)
+            updateUIPanel();
+
             if (!gameActive) {
-                fill(0, 0, 0, 220);
-                rect(0, 0, width, height);
-                fill(255);
-                textAlign(CENTER, CENTER);
-                textSize(44);
-                text("OYUN BİTTİ", width/2, height/2 - 40);
-                textSize(22);
-                fill('#94a3b8');
-                text("Toplam Skor: " + score, width/2, height/2 + 10);
-                text("Ulaştığın Seviye: " + currentLvl, width/2, height/2 + 40);
-                fill('#10b981');
-                text("Devam etmek için aşağıdaki butona basın", width/2, height/2 + 90);
+                fill(0, 0, 0, 220); rect(0, 0, width, height);
+                fill(255); textAlign(CENTER, CENTER);
+                textSize(44); text("OYUN BİTTİ", width/2, height/2 - 20);
+                textSize(20); text("Tekrar denemek için butona basın.", width/2, height/2 + 40);
             }
+        }
+
+        function updateUIPanel() {
+            let usedColors = new Set(nodes.filter(n => n.c !== -1).map(n => n.c));
+            document.getElementById('used-display').innerText = usedColors.size;
+            document.getElementById('target-display').innerText = chromaticNumber;
         }
 
         function mousePressed() {
@@ -103,38 +107,67 @@
 
         function initLevel() {
             nodes = []; edges = [];
-            let nCounts = Math.min(4 + currentLvl, 15);
+            let nCounts = Math.min(4 + currentLvl, 12); 
             for (let i = 0; i < nCounts; i++) {
                 nodes.push({ x: random(100, width-100), y: random(150, height-150), c: -1 });
             }
             for (let i = 0; i < nCounts; i++) {
                 for (let j = i + 1; j < nCounts; j++) {
-                    if (random() > 0.55) edges.push({ u: i, v: j });
+                    if (random() > 0.5) edges.push({ u: i, v: j });
+                }
+            }
+            // Kromatik sayıyı hesapla (Brute-force / Backtracking)
+            chromaticNumber = calculateChromaticNumber();
+            document.getElementById('msg-box').style.display = 'none';
+        }
+
+        function calculateChromaticNumber() {
+            for (let k = 1; k <= colors.length; k++) {
+                if (isColorable(0, k, new Array(nodes.length).fill(-1))) return k;
+            }
+            return colors.length;
+        }
+
+        function isColorable(v, k, tempColors) {
+            if (v === nodes.length) return true;
+            for (let c = 0; c < k; c++) {
+                if (isSafe(v, c, tempColors)) {
+                    tempColors[v] = c;
+                    if (isColorable(v + 1, k, tempColors)) return true;
+                    tempColors[v] = -1;
+                }
+            }
+            return false;
+        }
+
+        function isSafe(v, c, tempColors) {
+            for (let edge of edges) {
+                if (edge.u === v && tempColors[edge.v] === c) return false;
+                if (edge.v === v && tempColors[edge.u] === c) return false;
+            }
+            return true;
+        }
+
+        function checkWin() {
+            let allColored = nodes.every(n => n.c !== -1);
+            let noConflict = edges.every(e => nodes[e.u].c !== nodes[e.v].c);
+            let usedColorsCount = new Set(nodes.map(n => n.c)).size;
+
+            if (allColored && noConflict) {
+                if (usedColorsCount <= chromaticNumber) {
+                    playTone(600, 0.2);
+                    timeLeft += 20; // Bonus süre
+                    nextLevel();
+                } else {
+                    document.getElementById('msg-box').style.display = 'block';
+                    playTone(100, 0.1); // Hata tonu
                 }
             }
         }
 
         function handleButtonClick() {
-            if (!gameActive) {
-                resetGame();
-            } else {
-                // Manuel geçiş istenirse (isteğe bağlı)
-                nextLevel(); 
-            }
-        }
-
-        function checkWin() {
-            if(nodes.every(n => n.c !== -1) && edges.every(e => nodes[e.u].c !== nodes[e.v].c)) {
-                score += currentLvl * 10;
-                document.getElementById('score-display').innerText = score;
-                playTone(600, 0.2);
-                
-                // SÜRE YENİLEME: Her seviyede süreyi artırarak sıfırla
-                timeLeft = 30 + (currentLvl * 2);
-                document.getElementById('timer-display').innerText = timeLeft;
-                
-                nextLevel();
-            }
+            if (!gameActive) resetGame();
+            else nextLevel();
         }
 
         function nextLevel() {
@@ -149,52 +182,29 @@
                 if(gameActive) {
                     timeLeft--;
                     document.getElementById('timer-display').innerText = Math.max(0, timeLeft);
-                    if(timeLeft <= 0) {
-                        gameActive = false;
-                        document.getElementById('main-btn').innerText = "YENİDEN DENE";
-                        document.getElementById('main-btn').style.backgroundColor = "#f43f5e";
-                    }
+                    if(timeLeft <= 0) gameActive = false;
                 }
             }, 1000);
         }
 
         function resetGame() {
-            // Tüm değişkenleri temizle
-            gameActive = true;
-            timeLeft = 30;
-            score = 0;
-            currentLvl = 1;
-            
-            // Arayüzü güncelle
-            document.getElementById('score-display').innerText = score;
+            gameActive = true; timeLeft = 45; currentLvl = 1;
             document.getElementById('lvl-display').innerText = currentLvl;
-            document.getElementById('timer-display').innerText = timeLeft;
             document.getElementById('main-btn').innerText = "SONRAKİ SEVİYE";
             document.getElementById('main-btn').style.backgroundColor = "#10b981";
-            
             initLevel();
-            // Timer zaten arkada çalışıyor, sadece gameActive=true yapmak yetiyor
         }
 
         function solvePuzzle() {
             if(!gameActive) return;
-            nodes.forEach(n => n.c = -1);
-            for(let i=0; i<nodes.length; i++) {
-                let neighbors = edges.filter(e => e.u === i || e.v === i).map(e => e.u === i ? nodes[e.v].c : nodes[e.u].c);
-                let col = 0; while(neighbors.includes(col)) col++;
-                nodes[i].c = col;
-            }
-            score = Math.max(0, score - 5);
-            document.getElementById('score-display').innerText = score;
+            // AI en iyi çözümü bulur
+            let tempColors = new Array(nodes.length).fill(-1);
+            isColorable(0, chromaticNumber, tempColors);
+            for(let i=0; i<nodes.length; i++) nodes[i].c = tempColors[i];
+            timeLeft -= 10; // AI yardımı cezası
         }
 
-        function playTone(f, d) {
-            try {
-                let o = new p5.Oscillator('sine');
-                o.start(); o.freq(f); o.amp(0.3, 0.05); o.stop(d);
-            } catch(e) {}
-        }
-
+        function playTone(f, d) { try { let o = new p5.Oscillator('sine'); o.start(); o.freq(f); o.amp(0.2, 0.05); o.stop(d); } catch(e) {} }
         function windowResized() { resizeCanvas(windowWidth, windowHeight); }
     </script>
 </body>
