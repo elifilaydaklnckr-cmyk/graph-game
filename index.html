@@ -6,15 +6,16 @@
     <title>Kromatik Master - Graf Boyama</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
-        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-        body { margin: 0; background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+        body { margin: 0; background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         #ui-layer { position: absolute; top: 20px; width: 90%; max-width: 800px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; }
         .stats-card { background: var(--card); padding: 12px 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; }
-        #bottom-controls { position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 10; }
-        button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        #bottom-controls { position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 100; }
+        button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; min-width: 150px; }
         .btn-next { background: #10b981; color: white; }
         .btn-hint { background: #f59e0b; color: white; }
         button:hover { transform: translateY(-3px); filter: brightness(1.1); }
+        button:active { transform: translateY(0); }
     </style>
 </head>
 <body>
@@ -25,18 +26,18 @@
             <div id="lvl-display" style="font-size: 20px; font-weight: 800;">1</div>
         </div>
         <div class="stats-card" style="text-align: center;">
-            <div style="font-size: 10px; color: #94a3b8;">KALAN SÜRE</div>
+            <div style="font-size: 10px; color: #94a3b8;">SÜRE</div>
             <div id="timer-display" style="font-size: 20px; font-weight: 800; color: #f43f5e;">30</div>
         </div>
         <div class="stats-card">
-            <div style="font-size: 10px; color: #94a3b8;">TOPLAM SKOR</div>
+            <div style="font-size: 10px; color: #94a3b8;">SKOR</div>
             <div id="score-display" style="font-size: 20px; font-weight: 800; color: #38bdf8;">0</div>
         </div>
     </div>
 
     <div id="bottom-controls">
         <button id="hint-btn" class="btn-hint" onclick="solvePuzzle()">YARDIM (AI)</button>
-        <button id="main-btn" class="btn-next" onclick="handleMainButton()">SONRAKİ SEVİYE</button>
+        <button id="main-btn" class="btn-next" onclick="handleButtonClick()">SONRAKİ SEVİYE</button>
     </div>
 
     <script>
@@ -53,6 +54,8 @@
 
         function draw() {
             background(15, 23, 42);
+            
+            // Kenar çizimleri
             for (let edge of edges) {
                 let n1 = nodes[edge.u], n2 = nodes[edge.v];
                 let conflict = (n1.c !== -1 && n1.c === n2.c);
@@ -60,6 +63,8 @@
                 strokeWeight(conflict ? 5 : 2);
                 line(n1.x, n1.y, n2.x, n2.y);
             }
+
+            // Düğüm çizimleri
             for (let n of nodes) {
                 if(n.c !== -1) { noStroke(); fill(colors[n.c] + '33'); ellipse(n.x, n.y, 60, 60); }
                 stroke(n.c === -1 ? '#94a3b8' : colors[n.c]);
@@ -67,11 +72,21 @@
                 fill(n.c === -1 ? '#1e293b' : colors[n.c]);
                 ellipse(n.x, n.y, 40, 40);
             }
+
+            // Oyun Bitti Ekranı (Overlay)
             if (!gameActive) {
-                fill(0, 0, 0, 220); rect(0, 0, width, height);
-                fill(255); textAlign(CENTER, CENTER);
-                textSize(40); text("SÜRE BİTTİ!", width/2, height/2 - 20);
-                textSize(18); text("Seviye " + currentLvl + " aşamasında zamanın tükendi.", width/2, height/2 + 40);
+                fill(0, 0, 0, 220);
+                rect(0, 0, width, height);
+                fill(255);
+                textAlign(CENTER, CENTER);
+                textSize(44);
+                text("OYUN BİTTİ", width/2, height/2 - 40);
+                textSize(22);
+                fill('#94a3b8');
+                text("Toplam Skor: " + score, width/2, height/2 + 10);
+                text("Ulaştığın Seviye: " + currentLvl, width/2, height/2 + 40);
+                fill('#10b981');
+                text("Devam etmek için aşağıdaki butona basın", width/2, height/2 + 90);
             }
         }
 
@@ -99,9 +114,13 @@
             }
         }
 
-        function handleMainButton() {
-            if (!gameActive) resetGame();
-            else nextLevel();
+        function handleButtonClick() {
+            if (!gameActive) {
+                resetGame();
+            } else {
+                // Manuel geçiş istenirse (isteğe bağlı)
+                nextLevel(); 
+            }
         }
 
         function checkWin() {
@@ -110,9 +129,9 @@
                 document.getElementById('score-display').innerText = score;
                 playTone(600, 0.2);
                 
-                // --- KRİTİK DEĞİŞİKLİK: Süreyi her levelde yenile ---
-                // Seviye başına 25 saniye veriyoruz, seviye arttıkça biraz daha zorlaşacağı için sabit tutabiliriz
-                timeLeft = 30 + (currentLvl * 2); 
+                // SÜRE YENİLEME: Her seviyede süreyi artırarak sıfırla
+                timeLeft = 30 + (currentLvl * 2);
+                document.getElementById('timer-display').innerText = timeLeft;
                 
                 nextLevel();
             }
@@ -127,24 +146,34 @@
         function startTimer() {
             if(timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
-                if(gameActive && timeLeft > 0) {
+                if(gameActive) {
                     timeLeft--;
-                    document.getElementById('timer-display').innerText = timeLeft;
-                } else if (gameActive && timeLeft <= 0) {
-                    gameActive = false;
-                    document.getElementById('main-btn').innerText = "YENİDEN DENE";
-                    document.getElementById('main-btn').style.backgroundColor = "#f43f5e";
+                    document.getElementById('timer-display').innerText = Math.max(0, timeLeft);
+                    if(timeLeft <= 0) {
+                        gameActive = false;
+                        document.getElementById('main-btn').innerText = "YENİDEN DENE";
+                        document.getElementById('main-btn').style.backgroundColor = "#f43f5e";
+                    }
                 }
             }, 1000);
         }
 
         function resetGame() {
-            gameActive = true; timeLeft = 30; score = 0; currentLvl = 1;
+            // Tüm değişkenleri temizle
+            gameActive = true;
+            timeLeft = 30;
+            score = 0;
+            currentLvl = 1;
+            
+            // Arayüzü güncelle
             document.getElementById('score-display').innerText = score;
             document.getElementById('lvl-display').innerText = currentLvl;
+            document.getElementById('timer-display').innerText = timeLeft;
             document.getElementById('main-btn').innerText = "SONRAKİ SEVİYE";
             document.getElementById('main-btn').style.backgroundColor = "#10b981";
+            
             initLevel();
+            // Timer zaten arkada çalışıyor, sadece gameActive=true yapmak yetiyor
         }
 
         function solvePuzzle() {
@@ -159,7 +188,13 @@
             document.getElementById('score-display').innerText = score;
         }
 
-        function playTone(f, d) { try { let o = new p5.Oscillator('sine'); o.start(); o.freq(f); o.amp(0.3, 0.05); o.stop(d); } catch(e) {} }
+        function playTone(f, d) {
+            try {
+                let o = new p5.Oscillator('sine');
+                o.start(); o.freq(f); o.amp(0.3, 0.05); o.stop(d);
+            } catch(e) {}
+        }
+
         function windowResized() { resizeCanvas(windowWidth, windowHeight); }
     </script>
 </body>
