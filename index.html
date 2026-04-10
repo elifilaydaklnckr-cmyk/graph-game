@@ -6,138 +6,72 @@
     <title>Kromatik Master - Graf Boyama</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
-        :root {
-            --primary: #6366f1;
-            --bg: #0f172a;
-            --card: #1e293b;
-            --text: #f8fafc;
-        }
-        body {
-            margin: 0;
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', system-ui, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            overflow: hidden;
-        }
-        #ui-layer {
-            position: absolute;
-            top: 20px;
-            width: 90%;
-            max-width: 800px;
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-        }
-        .stats-card {
-            background: var(--card);
-            padding: 15px 25px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            pointer-events: auto;
-            border: 1px solid rgba(255,255,255,0.1);
-            animation: slideDown 0.5s ease-out;
-        }
-        #bottom-controls {
-            position: absolute;
-            bottom: 30px;
-            display: flex;
-            gap: 15px;
-            pointer-events: auto;
-        }
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+        body { margin: 0; background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
+        #ui-layer { position: absolute; top: 20px; width: 90%; max-width: 800px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; }
+        .stats-card { background: var(--card); padding: 12px 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; }
+        #bottom-controls { position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 10; }
+        button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
         .btn-next { background: #10b981; color: white; }
         .btn-hint { background: #f59e0b; color: white; }
-        button:hover { transform: translateY(-3px); filter: brightness(1.2); }
-        button:active { transform: translateY(0); }
-        
-        @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+        button:hover { transform: translateY(-3px); filter: brightness(1.1); }
     </style>
 </head>
 <body>
 
     <div id="ui-layer">
         <div class="stats-card">
-            <div style="font-size: 12px; color: #94a3b8;">SEVİYE</div>
-            <div id="lvl-display" style="font-size: 24px; font-weight: 800;">1</div>
+            <div style="font-size: 10px; color: #94a3b8;">SEVİYE</div>
+            <div id="lvl-display" style="font-size: 20px; font-weight: 800;">1</div>
         </div>
         <div class="stats-card" style="text-align: center;">
-            <div style="font-size: 12px; color: #94a3b8;">SÜRE</div>
-            <div id="timer-display" style="font-size: 24px; font-weight: 800; color: #f43f5e;">60</div>
+            <div style="font-size: 10px; color: #94a3b8;">KALAN SÜRE</div>
+            <div id="timer-display" style="font-size: 20px; font-weight: 800; color: #f43f5e;">30</div>
         </div>
         <div class="stats-card">
-            <div style="font-size: 12px; color: #94a3b8;">SKOR</div>
-            <div id="score-display" style="font-size: 24px; font-weight: 800; color: #38bdf8;">0</div>
+            <div style="font-size: 10px; color: #94a3b8;">TOPLAM SKOR</div>
+            <div id="score-display" style="font-size: 20px; font-weight: 800; color: #38bdf8;">0</div>
         </div>
     </div>
 
     <div id="bottom-controls">
-        <button class="btn-hint" onclick="solvePuzzle()">YARDIM (AI)</button>
-        <button class="btn-next" onclick="nextLevel()">SONRAKİ SEVİYE</button>
+        <button id="hint-btn" class="btn-hint" onclick="solvePuzzle()">YARDIM (AI)</button>
+        <button id="main-btn" class="btn-next" onclick="handleMainButton()">SONRAKİ SEVİYE</button>
     </div>
 
     <script>
-        let nodes = [];
-        let edges = [];
+        let nodes = [], edges = [];
         let colors = ['#ff4757', '#2ed573', '#1e90ff', '#eccc68', '#a4b0be', '#ffa502'];
-        let currentLvl = 1;
-        let score = 0;
-        let timeLeft = 60;
-        let gameActive = true;
+        let currentLvl = 1, score = 0, timeLeft = 30, gameActive = true;
+        let timerInterval;
 
         function setup() {
-            let cvs = createCanvas(windowWidth, windowHeight);
-            cvs.style('z-index', '-1');
+            createCanvas(windowWidth, windowHeight).style('z-index', '-1');
             initLevel();
-            setInterval(updateTimer, 1000);
+            startTimer();
         }
 
         function draw() {
             background(15, 23, 42);
-            
-            // Çizgiler (Kenarlar)
             for (let edge of edges) {
-                let n1 = nodes[edge.u];
-                let n2 = nodes[edge.v];
-                let isConflict = (n1.c !== -1 && n1.c === n2.c);
-                
-                stroke(isConflict ? '#ff4757' : 'rgba(148, 163, 184, 0.2)');
-                strokeWeight(isConflict ? 5 : 2);
+                let n1 = nodes[edge.u], n2 = nodes[edge.v];
+                let conflict = (n1.c !== -1 && n1.c === n2.c);
+                stroke(conflict ? '#ff4757' : 'rgba(148, 163, 184, 0.2)');
+                strokeWeight(conflict ? 5 : 2);
                 line(n1.x, n1.y, n2.x, n2.y);
-                
-                if(isConflict) { // Titreşim efekti
-                    n1.x += random(-0.5, 0.5);
-                    n1.y += random(-0.5, 0.5);
-                }
             }
-
-            // Düğümler
             for (let n of nodes) {
-                // Glow efekti
-                if(n.c !== -1) {
-                    noStroke();
-                    fill(colors[n.c] + '33');
-                    ellipse(n.x, n.y, 60, 60);
-                }
-                
+                if(n.c !== -1) { noStroke(); fill(colors[n.c] + '33'); ellipse(n.x, n.y, 60, 60); }
                 stroke(n.c === -1 ? '#94a3b8' : colors[n.c]);
                 strokeWeight(3);
                 fill(n.c === -1 ? '#1e293b' : colors[n.c]);
                 ellipse(n.x, n.y, 40, 40);
+            }
+            if (!gameActive) {
+                fill(0, 0, 0, 220); rect(0, 0, width, height);
+                fill(255); textAlign(CENTER, CENTER);
+                textSize(40); text("SÜRE BİTTİ!", width/2, height/2 - 20);
+                textSize(18); text("Seviye " + currentLvl + " aşamasında zamanın tükendi.", width/2, height/2 + 40);
             }
         }
 
@@ -146,35 +80,41 @@
             for (let n of nodes) {
                 if (dist(mouseX, mouseY, n.x, n.y) < 25) {
                     n.c = (n.c + 1) % colors.length;
-                    playTone(200 + n.c * 100, 0.1);
+                    playTone(200 + n.c * 100, 0.05);
                     checkWin();
                 }
             }
         }
 
         function initLevel() {
-            nodes = [];
-            edges = [];
-            let nCounts = 4 + currentLvl;
+            nodes = []; edges = [];
+            let nCounts = Math.min(4 + currentLvl, 15);
             for (let i = 0; i < nCounts; i++) {
                 nodes.push({ x: random(100, width-100), y: random(150, height-150), c: -1 });
             }
             for (let i = 0; i < nCounts; i++) {
                 for (let j = i + 1; j < nCounts; j++) {
-                    if (random() > 0.5) edges.push({ u: i, v: j });
+                    if (random() > 0.55) edges.push({ u: i, v: j });
                 }
             }
         }
 
+        function handleMainButton() {
+            if (!gameActive) resetGame();
+            else nextLevel();
+        }
+
         function checkWin() {
-            let allColored = nodes.every(n => n.c !== -1);
-            let noConflict = edges.every(e => nodes[e.u].c !== nodes[e.v].c);
-            
-            if(allColored && noConflict) {
+            if(nodes.every(n => n.c !== -1) && edges.every(e => nodes[e.u].c !== nodes[e.v].c)) {
                 score += currentLvl * 10;
                 document.getElementById('score-display').innerText = score;
                 playTone(600, 0.2);
-                setTimeout(() => { alert("Harika! Bu grafı boyadın."); nextLevel(); }, 100);
+                
+                // --- KRİTİK DEĞİŞİKLİK: Süreyi her levelde yenile ---
+                // Seviye başına 25 saniye veriyoruz, seviye arttıkça biraz daha zorlaşacağı için sabit tutabiliriz
+                timeLeft = 30 + (currentLvl * 2); 
+                
+                nextLevel();
             }
         }
 
@@ -184,41 +124,42 @@
             initLevel();
         }
 
-        function updateTimer() {
-            if(timeLeft > 0) {
-                timeLeft--;
-                document.getElementById('timer-display').innerText = timeLeft;
-            } else {
-                gameActive = false;
-                noLoop();
-                alert("Oyun Bitti! Toplam Skor: " + score);
-            }
+        function startTimer() {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if(gameActive && timeLeft > 0) {
+                    timeLeft--;
+                    document.getElementById('timer-display').innerText = timeLeft;
+                } else if (gameActive && timeLeft <= 0) {
+                    gameActive = false;
+                    document.getElementById('main-btn').innerText = "YENİDEN DENE";
+                    document.getElementById('main-btn').style.backgroundColor = "#f43f5e";
+                }
+            }, 1000);
+        }
+
+        function resetGame() {
+            gameActive = true; timeLeft = 30; score = 0; currentLvl = 1;
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('lvl-display').innerText = currentLvl;
+            document.getElementById('main-btn').innerText = "SONRAKİ SEVİYE";
+            document.getElementById('main-btn').style.backgroundColor = "#10b981";
+            initLevel();
         }
 
         function solvePuzzle() {
-            // Basit bir Greedy (Açgözlü) Boyama Algoritması
+            if(!gameActive) return;
             nodes.forEach(n => n.c = -1);
             for(let i=0; i<nodes.length; i++) {
-                let neighborColors = edges
-                    .filter(e => e.u === i || e.v === i)
-                    .map(e => e.u === i ? nodes[e.v].c : nodes[e.u].c);
-                
-                let chosenColor = 0;
-                while(neighborColors.includes(chosenColor)) chosenColor++;
-                nodes[i].c = chosenColor;
+                let neighbors = edges.filter(e => e.u === i || e.v === i).map(e => e.u === i ? nodes[e.v].c : nodes[e.u].c);
+                let col = 0; while(neighbors.includes(col)) col++;
+                nodes[i].c = col;
             }
-            score -= 5; // İpucu kullanma cezası
+            score = Math.max(0, score - 5);
             document.getElementById('score-display').innerText = score;
         }
 
-        function playTone(freq, dur) {
-            let osc = new p5.Oscillator('sine');
-            osc.start();
-            osc.freq(freq);
-            osc.amp(0.5, 0.05);
-            osc.stop(dur);
-        }
-
+        function playTone(f, d) { try { let o = new p5.Oscillator('sine'); o.start(); o.freq(f); o.amp(0.3, 0.05); o.stop(d); } catch(e) {} }
         function windowResized() { resizeCanvas(windowWidth, windowHeight); }
     </script>
 </body>
