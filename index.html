@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kromatik Master - En Az Renk Meydan Okuması</title>
+    <title>Kromatik Master - Kilitli Seviye Sistemi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
@@ -11,11 +11,15 @@
         #ui-layer { position: absolute; top: 20px; width: 90%; max-width: 900px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; }
         .stats-card { background: var(--card); padding: 12px 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; min-width: 120px; }
         #bottom-controls { position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 100; }
-        button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
-        .btn-next { background: #10b981; color: white; }
+        
+        /* Buton Stilleri */
+        button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        .btn-next { background: #475569; color: #94a3b8; cursor: not-allowed; opacity: 0.6; } /* Kilitli hali */
+        .btn-next.active { background: #10b981; color: white; cursor: pointer; opacity: 1; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); } /* Açık hali */
         .btn-hint { background: #f59e0b; color: white; }
-        #msg-box { position: absolute; top: 120px; background: rgba(244, 63, 94, 0.9); padding: 10px 20px; border-radius: 8px; display: none; font-weight: bold; z-index: 50; }
-        .success-glow { color: #10b981; font-weight: bold; }
+        
+        #msg-box { position: absolute; top: 120px; background: rgba(244, 63, 94, 0.9); padding: 10px 20px; border-radius: 8px; display: none; font-weight: bold; z-index: 50; animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
     </style>
 </head>
 <body>
@@ -26,12 +30,12 @@
             <div id="lvl-display" style="font-size: 20px; font-weight: 800;">1</div>
         </div>
         <div class="stats-card">
-            <div style="font-size: 10px; color: #94a3b8;">HEDEF RENK</div>
+            <div style="font-size: 10px; color: #94a3b8;">HEDEF RENK ($\chi$)</div>
             <div id="target-display" style="font-size: 20px; font-weight: 800; color: #f59e0b;">?</div>
         </div>
         <div class="stats-card" style="text-align: center;">
-            <div style="font-size: 10px; color: #94a3b8;">SÜRE</div>
-            <div id="timer-display" style="font-size: 20px; font-weight: 800; color: #f43f5e;">30</div>
+            <div style="font-size: 10px; color: #94a3b8;">KALAN SÜRE</div>
+            <div id="timer-display" style="font-size: 20px; font-weight: 800; color: #f43f5e;">45</div>
         </div>
         <div class="stats-card">
             <div style="font-size: 10px; color: #94a3b8;">KULLANILAN</div>
@@ -39,11 +43,11 @@
         </div>
     </div>
 
-    <div id="msg-box">DİKKAT: Doğru boyadın ama daha az renk kullanmalısın!</div>
+    <div id="msg-box">Eksik veya fazla renk! Hedef renge ulaşmalısın.</div>
 
     <div id="bottom-controls">
         <button id="hint-btn" class="btn-hint" onclick="solvePuzzle()">YARDIM (AI)</button>
-        <button id="main-btn" class="btn-next" onclick="handleButtonClick()">SONRAKİ SEVİYE</button>
+        <button id="main-btn" class="btn-next" onclick="handleButtonClick()" disabled>SEVİYE KİLİTLİ</button>
     </div>
 
     <script>
@@ -61,7 +65,6 @@
 
         function draw() {
             background(15, 23, 42);
-            
             for (let edge of edges) {
                 let n1 = nodes[edge.u], n2 = nodes[edge.v];
                 let conflict = (n1.c !== -1 && n1.c === n2.c);
@@ -69,29 +72,22 @@
                 strokeWeight(conflict ? 5 : 2);
                 line(n1.x, n1.y, n2.x, n2.y);
             }
-
             for (let n of nodes) {
                 if(n.c !== -1) { noStroke(); fill(colors[n.c] + '33'); ellipse(n.x, n.y, 60, 60); }
                 stroke(n.c === -1 ? '#94a3b8' : colors[n.c]);
                 strokeWeight(3);
                 fill(n.c === -1 ? '#1e293b' : colors[n.c]);
-                ellipse(n.x, n.y, 40, 40);
+                ellipse(n.x, n.y, 45, 45);
             }
 
-            updateUIPanel();
+            checkLevelStatus();
 
             if (!gameActive) {
-                fill(0, 0, 0, 220); rect(0, 0, width, height);
+                fill(0, 0, 0, 230); rect(0, 0, width, height);
                 fill(255); textAlign(CENTER, CENTER);
-                textSize(44); text("OYUN BİTTİ", width/2, height/2 - 20);
-                textSize(20); text("Tekrar denemek için butona basın.", width/2, height/2 + 40);
+                textSize(40); text("ZAMAN TÜKENDİ!", width/2, height/2 - 20);
+                textSize(20); fill('#94a3b8'); text("Tekrar denemek için butona basın.", width/2, height/2 + 30);
             }
-        }
-
-        function updateUIPanel() {
-            let usedColors = new Set(nodes.filter(n => n.c !== -1).map(n => n.c));
-            document.getElementById('used-display').innerText = usedColors.size;
-            document.getElementById('target-display').innerText = chromaticNumber;
         }
 
         function mousePressed() {
@@ -100,25 +96,75 @@
                 if (dist(mouseX, mouseY, n.x, n.y) < 25) {
                     n.c = (n.c + 1) % colors.length;
                     playTone(200 + n.c * 100, 0.05);
-                    checkWin();
                 }
             }
         }
 
         function initLevel() {
             nodes = []; edges = [];
-            let nCounts = Math.min(4 + currentLvl, 12); 
+            let nCounts = Math.min(4 + currentLvl, 12);
             for (let i = 0; i < nCounts; i++) {
                 nodes.push({ x: random(100, width-100), y: random(150, height-150), c: -1 });
             }
             for (let i = 0; i < nCounts; i++) {
                 for (let j = i + 1; j < nCounts; j++) {
-                    if (random() > 0.5) edges.push({ u: i, v: j });
+                    if (random() > 0.52) edges.push({ u: i, v: j });
                 }
             }
-            // Kromatik sayıyı hesapla (Brute-force / Backtracking)
             chromaticNumber = calculateChromaticNumber();
-            document.getElementById('msg-box').style.display = 'none';
+            document.getElementById('target-display').innerText = chromaticNumber;
+            updateLock(false);
+        }
+
+        function checkLevelStatus() {
+            let usedColors = new Set(nodes.filter(n => n.c !== -1).map(n => n.c));
+            document.getElementById('used-display').innerText = usedColors.size;
+
+            let allColored = nodes.every(n => n.c !== -1);
+            let noConflict = edges.every(e => nodes[e.u].c !== nodes[e.v].c);
+            
+            if (allColored && noConflict && usedColors.size === chromaticNumber) {
+                updateLock(true);
+            } else {
+                updateLock(false);
+            }
+        }
+
+        function updateLock(isUnlocked) {
+            let btn = document.getElementById('main-btn');
+            if (isUnlocked && gameActive) {
+                btn.disabled = false;
+                btn.classList.add('active');
+                btn.innerText = "SONRAKİ SEVİYE →";
+            } else if (gameActive) {
+                btn.disabled = true;
+                btn.classList.remove('active');
+                btn.innerText = "SEVİYE KİLİTLİ";
+            }
+        }
+
+        function handleButtonClick() {
+            if (!gameActive) {
+                resetGame();
+            } else {
+                score += currentLvl * 10;
+                timeLeft += 25; // Başarı bonusu
+                nextLevel();
+            }
+        }
+
+        function nextLevel() {
+            currentLvl++;
+            document.getElementById('lvl-display').innerText = currentLvl;
+            initLevel();
+        }
+
+        function resetGame() {
+            gameActive = true; timeLeft = 45; currentLvl = 1; score = 0;
+            document.getElementById('lvl-display').innerText = currentLvl;
+            document.getElementById('main-btn').style.backgroundColor = ""; 
+            initLevel();
+            loop();
         }
 
         function calculateChromaticNumber() {
@@ -131,7 +177,13 @@
         function isColorable(v, k, tempColors) {
             if (v === nodes.length) return true;
             for (let c = 0; c < k; c++) {
-                if (isSafe(v, c, tempColors)) {
+                let safe = true;
+                for (let edge of edges) {
+                    if ((edge.u === v && tempColors[edge.v] === c) || (edge.v === v && tempColors[edge.u] === c)) {
+                        safe = false; break;
+                    }
+                }
+                if (safe) {
                     tempColors[v] = c;
                     if (isColorable(v + 1, k, tempColors)) return true;
                     tempColors[v] = -1;
@@ -140,40 +192,12 @@
             return false;
         }
 
-        function isSafe(v, c, tempColors) {
-            for (let edge of edges) {
-                if (edge.u === v && tempColors[edge.v] === c) return false;
-                if (edge.v === v && tempColors[edge.u] === c) return false;
-            }
-            return true;
-        }
-
-        function checkWin() {
-            let allColored = nodes.every(n => n.c !== -1);
-            let noConflict = edges.every(e => nodes[e.u].c !== nodes[e.v].c);
-            let usedColorsCount = new Set(nodes.map(n => n.c)).size;
-
-            if (allColored && noConflict) {
-                if (usedColorsCount <= chromaticNumber) {
-                    playTone(600, 0.2);
-                    timeLeft += 20; // Bonus süre
-                    nextLevel();
-                } else {
-                    document.getElementById('msg-box').style.display = 'block';
-                    playTone(100, 0.1); // Hata tonu
-                }
-            }
-        }
-
-        function handleButtonClick() {
-            if (!gameActive) resetGame();
-            else nextLevel();
-        }
-
-        function nextLevel() {
-            currentLvl++;
-            document.getElementById('lvl-display').innerText = currentLvl;
-            initLevel();
+        function solvePuzzle() {
+            if(!gameActive) return;
+            let tempColors = new Array(nodes.length).fill(-1);
+            isColorable(0, chromaticNumber, tempColors);
+            for(let i=0; i<nodes.length; i++) nodes[i].c = tempColors[i];
+            timeLeft = Math.max(0, timeLeft - 10);
         }
 
         function startTimer() {
@@ -182,26 +206,16 @@
                 if(gameActive) {
                     timeLeft--;
                     document.getElementById('timer-display').innerText = Math.max(0, timeLeft);
-                    if(timeLeft <= 0) gameActive = false;
+                    if(timeLeft <= 0) {
+                        gameActive = false;
+                        let btn = document.getElementById('main-btn');
+                        btn.disabled = false;
+                        btn.classList.add('active');
+                        btn.style.backgroundColor = "#f43f5e";
+                        btn.innerText = "YENİDEN DENE";
+                    }
                 }
             }, 1000);
-        }
-
-        function resetGame() {
-            gameActive = true; timeLeft = 45; currentLvl = 1;
-            document.getElementById('lvl-display').innerText = currentLvl;
-            document.getElementById('main-btn').innerText = "SONRAKİ SEVİYE";
-            document.getElementById('main-btn').style.backgroundColor = "#10b981";
-            initLevel();
-        }
-
-        function solvePuzzle() {
-            if(!gameActive) return;
-            // AI en iyi çözümü bulur
-            let tempColors = new Array(nodes.length).fill(-1);
-            isColorable(0, chromaticNumber, tempColors);
-            for(let i=0; i<nodes.length; i++) nodes[i].c = tempColors[i];
-            timeLeft -= 10; // AI yardımı cezası
         }
 
         function playTone(f, d) { try { let o = new p5.Oscillator('sine'); o.start(); o.freq(f); o.amp(0.2, 0.05); o.stop(d); } catch(e) {} }
