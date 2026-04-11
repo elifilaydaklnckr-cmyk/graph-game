@@ -9,104 +9,113 @@
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #6366f1; }
         body { margin: 0; background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         
-        /* Giriş Ekranı Stili */
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 1000; transition: opacity 0.8s ease;
+            z-index: 1000; transition: 0.5s;
         }
         .logo-box {
-            width: 150px; height: 150px; border: 4px solid var(--primary);
+            width: 100px; height: 100px; border: 3px solid var(--primary);
             border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            font-size: 50px; font-weight: 900; color: var(--primary);
-            box-shadow: 0 0 30px rgba(99, 102, 241, 0.4); margin-bottom: 20px;
-            background: rgba(255,255,255,0.05);
+            font-size: 35px; font-weight: 900; color: var(--primary); margin-bottom: 20px;
         }
-        .game-title { font-size: 32px; letter-spacing: 4px; margin-bottom: 40px; color: #cbd5e1; }
-        .btn-start {
-            padding: 15px 40px; font-size: 20px; background: var(--primary);
-            color: white; border: none; border-radius: 50px; cursor: pointer;
-            transition: 0.3s; box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-        }
-        .btn-start:hover { transform: scale(1.1); background: #4f46e5; }
 
-        /* Oyun UI */
-        #ui-layer { position: absolute; top: 20px; width: 95%; max-width: 1000px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; opacity: 0; transition: 1s; }
-        .stats-card { background: var(--card); padding: 10px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; text-align: center; }
-        #bottom-controls { position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 100; opacity: 0; transition: 1s; }
-        
+        #ui-layer { position: absolute; top: 20px; width: 95%; max-width: 1000px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; opacity: 0; }
+        .stats-card { background: var(--card); padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; text-align: center; }
+
+        /* RENK PALETİ */
+        #palette {
+            position: absolute; bottom: 100px; display: flex; gap: 15px;
+            background: rgba(30, 41, 59, 0.8); padding: 15px; border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1); z-index: 100; opacity: 0; transition: 1s;
+        }
+        .color-circle {
+            width: 35px; height: 35px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: 0.2s;
+        }
+        .color-circle.active { border-color: white; transform: scale(1.2); box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+
+        #bottom-controls { position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 100; opacity: 0; }
         button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
-        .btn-next { background: #475569; color: #94a3b8; cursor: not-allowed; }
-        .btn-next.active { background: #10b981; color: white; cursor: pointer; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
-        .btn-hint { background: #f59e0b; color: white; }
-
-        #info-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; border: 2px solid var(--primary); padding: 30px; border-radius: 20px; width: 80%; max-width: 500px; text-align: center; z-index: 200; display: none; }
+        .btn-next { background: #475569; color: #94a3b8; }
+        .btn-next.active { background: #10b981; color: white; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
         <div class="logo-box">E İ K</div>
-        <h1 class="game-title">GRAF BOYAMA</h1>
-        <p style="color: #64748b; margin-bottom: 30px;">Minimum Renk ile Grafı Fethet!</p>
-        <button class="btn-start" onclick="startGame()">OYUNA BAŞLA</button>
+        <h1 style="letter-spacing: 5px; font-size: 24px;">GRAF BOYAMA</h1>
+        <button style="background: var(--primary); color:white; border-radius: 50px; padding: 12px 30px; margin-top: 20px;" onclick="startGame()">OYUNA BAŞLA</button>
     </div>
 
     <div id="ui-layer">
         <div class="stats-card">
             <div style="font-size: 10px; color: #94a3b8;">SEVİYE</div>
-            <div id="lvl-display" style="font-size: 18px; font-weight: 800;">1</div>
+            <div id="lvl-display" style="font-weight: bold;">1</div>
         </div>
         <div class="stats-card">
             <div style="font-size: 10px; color: #94a3b8;">HEDEF RENK</div>
-            <div id="target-display" style="font-size: 18px; font-weight: 800; color: #a855f7;">?</div>
+            <div id="target-display" style="color: #a855f7; font-weight: bold;">?</div>
+        </div>
+        <div class="stats-card" style="min-width: 140px;">
+            <div style="font-size: 10px; color: #94a3b8;">MÜREKKEP</div>
+            <div id="energy-text" style="font-weight: bold; color: #10b981;">100%</div>
         </div>
         <div class="stats-card">
             <div style="font-size: 10px; color: #94a3b8;">SKOR</div>
-            <div id="score-display" style="font-size: 18px; font-weight: 800; color: #10b981;">0</div>
+            <div id="score-display" style="color: #10b981; font-weight: bold;">0</div>
         </div>
     </div>
 
-    <div id="info-card">
-        <h2 id="info-title">Biliyor muydunuz?</h2>
-        <p id="info-text"></p>
-        <button class="btn-next active" onclick="closeInfoCard()">ANLADIM, DEVAM ET</button>
-    </div>
+    <div id="palette"></div>
 
     <div id="bottom-controls">
-        <button id="hint-btn" class="btn-hint" onclick="solvePuzzle()">İPUCU (-20 Puan)</button>
-        <button id="main-btn" class="btn-next" onclick="handleButtonClick()" disabled>BÖLÜMÜ ÇÖZ</button>
+        <button class="btn-next" style="background: #f59e0b; color: white;" onclick="solvePuzzle()">İPUCU (-20)</button>
+        <button id="main-btn" class="btn-next" onclick="nextLevel()" disabled>BÖLÜMÜ ÇÖZ</button>
     </div>
 
     <script>
         let nodes = [], edges = [];
         let colors = ['#ff4757', '#2ed573', '#1e90ff', '#eccc68', '#a4b0be', '#ffa502'];
-        let currentLvl = 1, score = 0, gameActive = false;
+        let selectedColorIdx = 0;
+        let currentLvl = 1, score = 0, energy = 100, gameActive = false;
         let chromaticNumber = 0;
-
-        const educationalFacts = [
-            "EİK Notu: Graf boyama, telekomünikasyon frekanslarının çakışmasını önlemek için kullanılır.",
-            "Kromatik sayı (χ), bir grafı boyamak için gereken en az renk sayısıdır.",
-            "Dört Renk Teoremi, her haritanın 4 renkle boyanabileceğini kanıtlar.",
-            "Graf teorisi, sosyal ağlardaki arkadaşlık bağlarını analiz etmek için de kullanılır."
-        ];
 
         function startGame() {
             document.getElementById('start-screen').style.opacity = '0';
             setTimeout(() => {
                 document.getElementById('start-screen').style.display = 'none';
                 document.getElementById('ui-layer').style.opacity = '1';
+                document.getElementById('palette').style.opacity = '1';
                 document.getElementById('bottom-controls').style.opacity = '1';
                 gameActive = true;
+                createPalette();
                 initLevel();
                 loop();
-            }, 800);
+            }, 500);
+        }
+
+        function createPalette() {
+            const p = document.getElementById('palette');
+            p.innerHTML = '';
+            colors.forEach((c, idx) => {
+                let div = document.createElement('div');
+                div.className = 'color-circle' + (idx === 0 ? ' active' : '');
+                div.style.backgroundColor = c;
+                div.onclick = () => {
+                    document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
+                    div.classList.add('active');
+                    selectedColorIdx = idx;
+                };
+                p.appendChild(div);
+            });
         }
 
         function setup() {
             createCanvas(windowWidth, windowHeight).style('z-index', '-1');
-            noLoop(); // Oyun başlayana kadar çizimi durdur
+            noLoop();
         }
 
         function draw() {
@@ -116,7 +125,7 @@
                 let n1 = nodes[edge.u], n2 = nodes[edge.v];
                 let conflict = (n1.c !== -1 && n1.c === n2.c);
                 stroke(conflict ? '#ff4757' : 'rgba(148, 163, 184, 0.2)');
-                strokeWeight(conflict ? 4 : 2);
+                strokeWeight(conflict ? 5 : 2);
                 line(n1.x, n1.y, n2.x, n2.y);
             }
             for (let n of nodes) {
@@ -130,24 +139,46 @@
         }
 
         function mousePressed() {
-            if(!gameActive || document.getElementById('info-card').style.display === 'block') return;
+            if(!gameActive || energy <= 0) return;
             for (let n of nodes) {
                 if (dist(mouseX, mouseY, n.x, n.y) < 25) {
-                    n.c = (n.c + 1) % colors.length;
-                    playTone(200 + n.c * 100, 0.05);
+                    // Eğer zaten o renkteyse işlem yapma
+                    if(n.c === selectedColorIdx) return;
+                    
+                    n.c = selectedColorIdx;
+                    
+                    // Sadece hata varsa ceza ver
+                    let hasConflict = edges.some(e => 
+                        (nodes[e.u] === n || nodes[e.v] === n) && 
+                        nodes[e.u].c !== -1 && nodes[e.u].c === nodes[e.v].c
+                    );
+                    
+                    energy -= hasConflict ? 10 : 2; // Hatalı boyama 10, normal boyama 2 enerji
+                    updateEnergyUI();
+                    playTone(300 + selectedColorIdx * 50, 0.05);
+                    if(energy <= 0) { alert("Mürekkep Bitti!"); location.reload(); }
                 }
             }
         }
 
+        function updateEnergyUI() {
+            energy = Math.max(0, energy);
+            const txt = document.getElementById('energy-text');
+            txt.innerText = Math.floor(energy) + "%";
+            txt.style.color = energy < 30 ? "#f43f5e" : "#10b981";
+        }
+
         function initLevel() {
             nodes = []; edges = [];
+            energy = 100;
+            updateEnergyUI();
             let nCounts = Math.min(4 + currentLvl, 12);
             for (let i = 0; i < nCounts; i++) {
-                nodes.push({ x: random(100, width-100), y: random(150, height-150), c: -1 });
+                nodes.push({ x: random(100, width-100), y: random(150, height-200), c: -1 });
             }
             for (let i = 0; i < nCounts; i++) {
                 for (let j = i + 1; j < nCounts; j++) {
-                    if (random() > 0.52) edges.push({ u: i, v: j });
+                    if (random() > 0.5) edges.push({ u: i, v: j });
                 }
             }
             chromaticNumber = calculateChromaticNumber();
@@ -158,32 +189,19 @@
             let used = new Set(nodes.filter(n => n.c !== -1).map(n => n.c));
             let allOk = nodes.every(n => n.c !== -1) && edges.every(e => nodes[e.u].c !== nodes[e.v].c);
             let btn = document.getElementById('main-btn');
-            
             if (allOk && used.size === chromaticNumber) {
-                btn.disabled = false; btn.classList.add('active'); btn.innerText = "SONRAKİ SEVİYE";
+                btn.disabled = false; btn.classList.add('active'); btn.innerText = "SEVİYE GEÇ →";
             } else {
                 btn.disabled = true; btn.classList.remove('active'); btn.innerText = "BÖLÜMÜ ÇÖZ";
             }
         }
 
-        function handleButtonClick() {
+        function nextLevel() {
             score += currentLvl * 10;
-            document.getElementById('score-display').innerText = score;
-            showInfo();
-        }
-
-        function showInfo() {
-            document.getElementById('info-text').innerText = educationalFacts[Math.floor(Math.random() * educationalFacts.length)];
-            document.getElementById('info-card').style.display = 'block';
-            noLoop();
-        }
-
-        function closeInfoCard() {
-            document.getElementById('info-card').style.display = 'none';
             currentLvl++;
+            document.getElementById('score-display').innerText = score;
             document.getElementById('lvl-display').innerText = currentLvl;
             initLevel();
-            loop();
         }
 
         function solvePuzzle() {
