@@ -6,87 +6,91 @@
     <title>EİK - Graf Master Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
-        :root { --neon-blue: #00d2ff; --neon-purple: #9d50bb; --bg-dark: #05070a; --card-bg: rgba(30, 41, 59, 0.7); }
+        :root { --neon-blue: #00d2ff; --neon-purple: #9d50bb; --bg-dark: #05070a; --card-bg: rgba(30, 41, 59, 0.8); }
         body { margin: 0; background-color: var(--bg-dark); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
         
-        /* Giriş Ekranı Animasyonu */
-        #start-screen {
+        /* Giriş ve Bitiş Ekranları */
+        .overlay-screen {
             position: fixed; inset: 0; background: radial-gradient(circle, #1a1c2c, #05070a);
             display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;
         }
         .eik-logo {
-            width: 120px; height: 120px; border: 4px solid var(--neon-blue); border-radius: 20px;
+            width: 100px; height: 100px; border: 4px solid var(--neon-blue); border-radius: 20px;
             display: flex; justify-content: center; align-items: center;
-            font-size: 45px; font-weight: 900; color: var(--neon-blue);
-            text-shadow: 0 0 20px var(--neon-blue); box-shadow: 0 0 30px rgba(0, 210, 255, 0.3);
-            animation: pulse 2s infinite; margin-bottom: 25px; transform: rotate(-5deg);
+            font-size: 38px; font-weight: 900; color: var(--neon-blue);
+            text-shadow: 0 0 15px var(--neon-blue); box-shadow: 0 0 25px rgba(0, 210, 255, 0.3);
+            margin-bottom: 25px; transform: rotate(-5deg);
         }
-        @keyframes pulse { 0% { transform: scale(1) rotate(-5deg); } 50% { transform: scale(1.05) rotate(5deg); } 100% { transform: scale(1) rotate(-5deg); } }
         
-        .start-btn {
+        .main-btn {
             background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
-            border: none; padding: 15px 50px; border-radius: 50px; color: white;
-            font-size: 20px; font-weight: bold; cursor: pointer; transition: 0.4s;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            border: none; padding: 12px 40px; border-radius: 50px; color: white;
+            font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s;
         }
-        .start-btn:hover { letter-spacing: 3px; box-shadow: 0 0 30px var(--neon-blue); }
+        .main-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--neon-blue); }
 
-        /* Oyun Panelleri */
-        .hud { position: absolute; padding: 15px 25px; background: var(--card-bg); border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
-        #top-bar { top: 20px; left: 50%; transform: translateX(-50%); width: 80%; max-width: 900px; flex-direction: row; justify-content: space-around; }
+        /* HUD - Oyun Arayüzü */
+        .hud { position: absolute; padding: 12px 20px; background: var(--card-bg); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); display: flex; align-items: center; z-index: 10; }
+        #top-bar { top: 20px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 950px; justify-content: space-around; }
         
-        .stat-val { font-size: 24px; font-weight: 800; display: block; }
-        .stat-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-group { text-align: center; }
+        .stat-val { font-size: 20px; font-weight: 800; display: block; }
+        .stat-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Zamanlayıcı Özel Efekt */
-        #timer-card.warning { animation: blink-red 0.5s infinite; border-color: #ff4757; }
-        @keyframes blink-red { 0% { background: var(--card-bg); } 50% { background: rgba(255, 71, 87, 0.3); } }
+        #palette-box { bottom: 30px; left: 30px; gap: 10px; }
+        .color-opt { width: 32px; height: 32px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .color-opt.active { transform: translateY(-5px); border-color: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
 
-        /* Renk Paleti */
-        #palette-box { bottom: 40px; left: 30px; flex-direction: row; gap: 12px; }
-        .color-opt { width: 35px; height: 35px; border-radius: 10px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); transition: 0.3s; }
-        .color-opt.active { transform: translateY(-10px) scale(1.2); border-color: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-
-        /* Kontrol Butonları */
-        #action-box { bottom: 40px; right: 30px; flex-direction: row; gap: 15px; }
-        .game-btn { padding: 12px 25px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        #solve-btn { background: #10b981; color: white; opacity: 0.5; cursor: not-allowed; }
-        #solve-btn.ready { opacity: 1; cursor: pointer; box-shadow: 0 0 20px #10b981; }
+        #action-box { bottom: 30px; right: 30px; gap: 12px; }
+        .game-btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        #solve-btn { background: #10b981; color: white; opacity: 0.5; }
+        #solve-btn.ready { opacity: 1; box-shadow: 0 0 15px #10b981; }
         
-        /* EİK İmza */
-        .eik-signature { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 12px; color: rgba(255,255,255,0.2); letter-spacing: 5px; }
+        .hint-count { font-size: 10px; display: block; opacity: 0.7; }
+
+        #game-over-screen { display: none; }
+        .eik-signature { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 10px; color: rgba(255,255,255,0.2); letter-spacing: 4px; }
     </style>
 </head>
 <body>
 
-    <div id="start-screen">
+    <div id="start-screen" class="overlay-screen">
         <div class="eik-logo">EİK</div>
-        <h1 style="letter-spacing: 10px; margin-bottom: 50px;">GRAF MASTER PRO</h1>
-        <button class="start-btn" onclick="initGame()">SİSTEMİ BAŞLAT</button>
+        <h1 style="letter-spacing: 8px; margin-bottom: 30px; font-size: 22px;">GRAF MASTER PRO</h1>
+        <button class="main-btn" onclick="initGame()">BAŞLAT</button>
+    </div>
+
+    <div id="game-over-screen" class="overlay-screen">
+        <div class="eik-logo">EİK</div>
+        <h1 id="over-title" style="color: #ff4757; letter-spacing: 5px;">GAME OVER</h1>
+        <p id="over-reason" style="margin-bottom: 5px; opacity: 0.8;"></p>
+        <p id="final-score" style="font-size: 24px; font-weight: bold; margin-bottom: 30px;"></p>
+        <button class="main-btn" onclick="location.reload()">TEKRAR DENE</button>
     </div>
 
     <div id="top-bar" class="hud" style="display:none;">
-        <div><span class="stat-label">SEVİYE</span><span id="lvl-txt" class="stat-val">1</span></div>
-        <div id="timer-card"><span class="stat-label">KALAN SÜRE</span><span id="time-txt" class="stat-val">60</span></div>
-        <div><span class="stat-label">HEDEF RENK</span><span id="chroma-txt" class="stat-val" style="color: var(--neon-blue);">?</span></div>
-        <div><span class="stat-label">MÜREKKEP</span><span id="ink-txt" class="stat-val" style="color: #10b981;">100%</span></div>
-        <div><span class="stat-label">SKOR</span><span id="score-txt" class="stat-val">0</span></div>
+        <div class="stat-group"><span class="stat-label">SEVİYE</span><span id="lvl-txt" class="stat-val">1</span></div>
+        <div class="stat-group"><span class="stat-label">SÜRE</span><span id="time-txt" class="stat-val">60</span></div>
+        <div class="stat-group"><span class="stat-label">HEDEF RENK</span><span id="chroma-txt" class="stat-val" style="color: var(--neon-blue);">?</span></div>
+        <div class="stat-group"><span class="stat-label">MÜREKKEP</span><span id="ink-txt" class="stat-val" style="color: #10b981;">100%</span></div>
+        <div class="stat-group"><span class="stat-label">SKOR</span><span id="score-txt" class="stat-val">0</span></div>
     </div>
 
     <div id="palette-box" class="hud" style="display:none;"></div>
 
     <div id="action-box" class="hud" style="display:none;">
-        <button class="game-btn" style="background: #f59e0b; color: white;" onclick="useHint()">İPUCU (-20)</button>
-        <button id="solve-btn" class="game-btn" onclick="nextLevel()">SONRAKİ SEVİYE</button>
+        <button id="hint-btn" class="game-btn" style="background: #f59e0b; color: white;" onclick="useHint()">
+            İPUCU (-20) <span class="hint-count" id="hint-count-txt">3 Hak</span>
+        </button>
+        <button id="solve-btn" class="game-btn" onclick="nextLevel()" disabled>SEVİYE GEÇ</button>
     </div>
 
     <div class="eik-signature">DESIGNED BY EİK</div>
 
     <script>
         let nodes = [], edges = [];
-        const colorPalette = ['#FF4757', '#2ED573', '#1E90FF', '#ECCC68', '#A4B0BE', '#FFA502', '#FF6B6B'];
-        let selectedColor = 0;
-        let lvl = 1, score = 0, ink = 100, timeLeft = 60;
+        const colorPalette = ['#FF4757', '#2ED573', '#1E90FF', '#ECCC68', '#A4B0BE', '#FFA502'];
+        let selectedColor = 0, lvl = 1, score = 0, ink = 100, timeLeft = 60, hintsLeft = 3;
         let gameRunning = false, targetChroma = 0, timer;
 
         function initGame() {
@@ -125,34 +129,32 @@
             if(!gameRunning) return;
             background(5, 7, 10);
             
-            // Fizik ve İtme Sistemi (Çakışmayı önler)
+            // Fizik Motoru
             nodes.forEach((n1, i) => {
-                // Merkeze çekim kuvveti
                 let centerPush = createVector(width/2 - n1.x, height/2 - n1.y);
-                n1.vx += centerPush.x * 0.001;
-                n1.vy += centerPush.y * 0.001;
+                n1.vx += centerPush.x * 0.0008;
+                n1.vy += centerPush.y * 0.0008;
 
                 nodes.forEach((n2, j) => {
                     if(i === j) return;
                     let d = dist(n1.x, n1.y, n2.x, n2.y);
-                    if(d < 120) { // Düğümler arası minimum mesafe
+                    if(d < 110) {
                         let force = p5.Vector.sub(createVector(n1.x, n1.y), createVector(n2.x, n2.y));
-                        force.setMag(0.5);
+                        force.setMag(0.6);
                         n1.vx += force.x; n1.vy += force.y;
                     }
                 });
-                
                 n1.x += n1.vx; n1.y += n1.vy;
-                n1.vx *= 0.9; n1.vy *= 0.9; // Sürtünme
-                n1.x = constrain(n1.x, 100, width-100);
-                n1.y = constrain(n1.y, 150, height-150);
+                n1.vx *= 0.85; n1.vy *= 0.85;
+                n1.x = constrain(n1.x, 80, width-80);
+                n1.y = constrain(n1.y, 140, height-140);
             });
 
-            // Çizgiler
+            // Bağlantılar
             edges.forEach(e => {
                 let n1 = nodes[e.u], n2 = nodes[e.v];
                 let error = (n1.c !== -1 && n1.c === n2.c);
-                stroke(error ? '#ff4757' : 'rgba(255,255,255,0.15)');
+                stroke(error ? '#ff4757' : 'rgba(255,255,255,0.12)');
                 strokeWeight(error ? 4 : 1.5);
                 line(n1.x, n1.y, n2.x, n2.y);
             });
@@ -160,13 +162,9 @@
             // Düğümler
             nodes.forEach(n => {
                 stroke(n.c === -1 ? '#334155' : colorPalette[n.c]);
-                strokeWeight(3);
-                fill(n.c === -1 ? '#0f172a' : colorPalette[n.c] + 'AA');
-                ellipse(n.x, n.y, 45, 45);
-                if(n.c !== -1) {
-                    noStroke(); fill(255, 50);
-                    ellipse(n.x - 5, n.y - 5, 10, 10); // Parlama efekti
-                }
+                strokeWeight(2.5);
+                fill(n.c === -1 ? '#0f172a' : colorPalette[n.c] + 'BB');
+                ellipse(n.x, n.y, 42, 42);
             });
 
             checkRules();
@@ -178,35 +176,19 @@
                 if(dist(mouseX, mouseY, n.x, n.y) < 25) {
                     if(n.c !== selectedColor) {
                         n.c = selectedColor;
-                        ink -= 1.5; // Her boyamada makul azalma
+                        ink -= 1.2;
                         updateUI();
-                        playNote(400 + selectedColor * 50);
+                        playNote(300 + selectedColor * 40);
                     }
                 }
             });
         }
 
-        function checkRules() {
-            let used = new Set(nodes.filter(n => n.c !== -1).map(n => n.c));
-            let noConflict = edges.every(e => nodes[e.u].c !== nodes[e.v].c && nodes[e.u].c !== -1 && nodes[e.v].c !== -1);
-            let btn = document.getElementById('solve-btn');
-            
-            if(noConflict && used.size === targetChroma) {
-                btn.classList.add('ready');
-                btn.disabled = false;
-            } else {
-                btn.classList.remove('ready');
-                btn.disabled = true;
-            }
-        }
-
         function startLevel() {
             nodes = []; edges = [];
-            ink = 100; timeLeft = 60 + (lvl * 5);
-            let nAmt = Math.min(5 + lvl, 15);
-            for(let i=0; i<nAmt; i++) {
-                nodes.push({x: random(width), y: random(height), vx: 0, vy: 0, c: -1});
-            }
+            ink = 100; timeLeft = 60 + (lvl * 3);
+            let nAmt = Math.min(4 + lvl, 14);
+            for(let i=0; i<nAmt; i++) nodes.push({x: random(width), y: random(height), vx: 0, vy: 0, c: -1});
             for(let i=0; i<nAmt; i++) {
                 for(let j=i+1; j<nAmt; j++) {
                     if(random() > 0.6) edges.push({u: i, v: j});
@@ -221,10 +203,8 @@
                 if(!gameRunning) return;
                 timeLeft--;
                 updateUI();
-                if(timeLeft < 10) document.getElementById('timer-card').classList.add('warning');
-                else document.getElementById('timer-card').classList.remove('warning');
-                
-                if(timeLeft <= 0 || ink <= 0) endGame();
+                if(timeLeft <= 0) endGame("Zaman Tükendi!");
+                if(ink <= 0) endGame("Mürekkep Tükendi!");
             }, 1000);
         }
 
@@ -234,8 +214,9 @@
             document.getElementById('ink-txt').innerText = Math.floor(ink) + "%";
             document.getElementById('score-txt').innerText = score;
             document.getElementById('chroma-txt').innerText = targetChroma;
+            document.getElementById('hint-count-txt').innerText = hintsLeft + " Hak";
             
-            if(ink < 25) document.getElementById('ink-txt').style.color = '#ff4757';
+            if(hintsLeft <= 0 || score < 20) document.getElementById('hint-btn').style.opacity = "0.4";
         }
 
         function nextLevel() {
@@ -244,41 +225,57 @@
             startLevel();
         }
 
-        function endGame() {
+        function endGame(reason) {
             gameRunning = false;
             clearInterval(timer);
-            alert("SİSTEM ÇÖKTÜ! Skorun: " + score);
-            location.reload();
+            document.getElementById('over-reason').innerText = reason;
+            document.getElementById('final-score').innerText = "Toplam Skor: " + score;
+            document.getElementById('game-over-screen').style.display = 'flex';
         }
 
         function useHint() {
-            if(score < 20) return;
+            if(hintsLeft <= 0 || score < 20) return;
+            hintsLeft--;
             score -= 20;
-            let sol = findColoring(0, targetChroma, new Array(nodes.length).fill(-1));
+            let sol = solveGraph(0, targetChroma, new Array(nodes.length).fill(-1));
             if(sol) nodes.forEach((n, i) => n.c = sol[i]);
             updateUI();
         }
 
-        // --- Algoritmalar ---
         function getChroma() {
             for(let k=1; k<=colorPalette.length; k++) {
-                if(findColoring(0, k, new Array(nodes.length).fill(-1))) return k;
+                if(solveGraph(0, k, new Array(nodes.length).fill(-1))) return k;
             }
         }
 
-        function findColoring(v, k, res) {
+        function solveGraph(v, k, res) {
             if(v === nodes.length) return res;
             for(let c=0; c<k; c++) {
                 if(edges.every(e => !( (e.u===v && res[e.v]===c) || (e.v===v && res[e.u]===c) ))) {
                     res[v] = c;
-                    if(findColoring(v+1, k, [...res])) return findColoring(v+1, k, [...res]);
+                    let next = solveGraph(v+1, k, [...res]);
+                    if(next) return next;
+                    res[v] = -1;
                 }
             }
             return null;
         }
 
+        function checkRules() {
+            let coloredNodes = nodes.filter(n => n.c !== -1);
+            let used = new Set(coloredNodes.map(n => n.c));
+            let noConflict = coloredNodes.length === nodes.length && edges.every(e => nodes[e.u].c !== nodes[e.v].c);
+            let btn = document.getElementById('solve-btn');
+            
+            if(noConflict && used.size === targetChroma) {
+                btn.classList.add('ready'); btn.disabled = false;
+            } else {
+                btn.classList.remove('ready'); btn.disabled = true;
+            }
+        }
+
         function playNote(f) {
-            try { let osc = new p5.Oscillator('triangle'); osc.start(); osc.freq(f); osc.amp(0.1, 0.1); osc.stop(0.2); } catch(e){}
+            try { let osc = new p5.Oscillator('sine'); osc.start(); osc.freq(f); osc.amp(0.1, 0.1); osc.stop(0.2); } catch(e){}
         }
         function windowResized() { resizeCanvas(windowWidth, windowHeight); }
     </script>
