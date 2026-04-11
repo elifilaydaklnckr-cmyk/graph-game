@@ -171,18 +171,29 @@
         }
 
         function mousePressed() {
-            if(!gameRunning) return;
-            nodes.forEach(n => {
-                if(dist(mouseX, mouseY, n.x, n.y) < 25) {
-                    if(n.c !== selectedColor) {
-                        n.c = selectedColor;
-                        ink -= 1.2;
-                        updateUI();
-                        playNote(300 + selectedColor * 40);
-                    }
-                }
-            });
+    if(!gameRunning) return;
+    nodes.forEach(n => {
+        if(dist(mouseX, mouseY, n.x, n.y) < 25) {
+            if(n.c !== selectedColor) {
+                // Hata kontrolü: Seçilen rengin komşularda olup olmadığına bak
+                let hasConflict = edges.some(e => 
+                    (nodes[e.u] === n || nodes[e.v] === n) && 
+                    ((nodes[e.u] === n ? nodes[e.v].c : nodes[e.u].c) === selectedColor)
+                );
+
+                n.c = selectedColor;
+                
+                // Hata varsa %10, yoksa %1 düşür
+                ink -= hasConflict ? 10 : 1; 
+                
+                updateUI();
+                playNote(300 + selectedColor * 40);
+                
+                if(ink <= 0) endGame("Mürekkep Tükendi!");
+            }
         }
+    });
+}
 
         function startLevel() {
             nodes = []; edges = [];
